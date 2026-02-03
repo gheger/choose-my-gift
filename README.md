@@ -1,16 +1,103 @@
-# React + Vite
+# Choose My Gift
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React + Vite web app for voting on destinations and activities, with live results and QR code sharing. Backend API is deployed as a Cloudflare Worker.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Vote for destinations and activities
+- Live results display
+- QR code for easy mobile voting
+- Responsive, mobile-optimized UI
 
-## React Compiler
+## Local Development
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Prerequisites
 
-## Expanding the ESLint configuration
+- Node.js (v18+ recommended)
+- npm
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Setup
+
+1. Install dependencies:
+
+   ```
+   npm install
+   ```
+
+2. Start the frontend locally:
+
+   ```
+   npm run dev
+   ```
+
+   The app will be available at [http://localhost:5173](http://localhost:5173) (or the port shown in your terminal).
+
+3. (Optional) Lint your code:
+
+   ```
+   npm run lint
+   ```
+
+### Backend API (Cloudflare Worker)
+
+The backend API is in the `worker/` directory and uses Cloudflare Workers with Wrangler.
+
+#### Setup & Run Locally
+
+1. Install Wrangler globally if not already:
+
+   ```
+   npm install -g wrangler
+   ```
+
+2. Install worker dependencies:
+
+   ```
+   cd worker
+   npm install
+   ```
+
+3. Start the worker locally:
+
+   ```
+   wrangler dev
+   ```
+
+   The API will be available at the local worker URL (shown in terminal).
+
+## Deployment
+
+### Frontend
+
+- The frontend is designed to be deployed on static hosting (e.g., GitHub Pages, Vercel, Netlify).
+- Build the app:
+
+  ```
+  npm run build
+  ```
+
+- Deploy the contents of the `dist/` folder to your static host.
+
+### Backend (Cloudflare Worker)
+
+- Deploy the worker with Wrangler:
+
+  ```
+  cd worker
+  wrangler deploy
+  ```
+
+- The API will be available at your Cloudflare Worker URL.
+
+## Configuration
+
+- The frontend expects the API endpoints `/api/options`, `/api/results`, and `/api/vote` to be available.
+- You may need to set environment variables or update URLs if deploying to custom domains.
+
+## Data
+
+- CSV files for activities, destinations, and votes are stored in the `DB/` folder.
+
+## License
+
+MIT
