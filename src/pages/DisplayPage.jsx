@@ -5,10 +5,7 @@ import { getResults } from "../lib/api.js";
 export default function DisplayPage() {
   const [data, setData] = useState(null);
 
-  const voteUrl = useMemo(() => {
-    // BASE_URL inclut "/choose-my-gift/"
-    return `${window.location.origin}${import.meta.env.BASE_URL}vote`;
-  }, []);
+  const voteUrl = `${window.location.origin}${import.meta.env.BASE_URL}#/vote`;
 
   useEffect(() => {
     let alive = true;
