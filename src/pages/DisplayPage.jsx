@@ -29,14 +29,12 @@ export default function DisplayPage() {
   }, []);
 
   return (
-    <div style={{ display: "flex", height: "100vh", padding: 24, gap: 24 }}>
-      <div style={{ flex: 1, overflow: "auto" }}>
+    <div className="display-fullscreen" style={{ display: "flex", height: "100vh", gap: 24, background: '#fff', color: '#222' }}>
+      <div style={{ flex: 1, overflow: "auto", padding: 24 }}>
         <h1 style={{ marginTop: 0 }}>Vote Live 🎁</h1>
-
         <Section title="Destinations" block={data?.destination} />
         <Section title="Activités" block={data?.activity} />
       </div>
-
       <div
         style={{
           width: 340,
@@ -47,6 +45,8 @@ export default function DisplayPage() {
           gap: 12,
           borderLeft: "1px solid #eee",
           paddingLeft: 24,
+          background: '#fff',
+          color: '#222',
         }}
       >
         <h2 style={{ margin: 0 }}>Scanner pour voter</h2>
