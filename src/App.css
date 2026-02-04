@@ -41,18 +41,36 @@
   color: #888;
 }
 
-/* Force light mode */
-body, #root, .card, select, input, button, h1, h2, h3, h4, h5, h6, p, div {
-  background: #fff !important;
-  color: #222 !important;
-  border-color: #eee !important;
+/* Light mode (default) */
+body, #root, .card, .vote-card, select, input, button, h1, h2, h3, h4, h5, h6, p, div {
+  background: #fff;
+  color: #222;
+  border-color: #eee;
 }
 
 @media (prefers-color-scheme: dark) {
-  body, #root, .card, select, input, button, h1, h2, h3, h4, h5, h6, p, div {
-    background: #fff !important;
-    color: #222 !important;
-    border-color: #eee !important;
+  body, #root, .card, .vote-card, select, input, button, h1, h2, h3, h4, h5, h6, p, div {
+    background: #181818 !important;
+    color: #f2f2f2 !important;
+    border-color: #333 !important;
+  }
+  .vote-card, .card {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.32) !important;
+    border: 1px solid #333 !important;
+  }
+  select, input, button {
+    background: #222 !important;
+    color: #f2f2f2 !important;
+    border-color: #444 !important;
+  }
+  .vote-card button {
+    background: linear-gradient(90deg,#222 60%,#444 100%) !important;
+    color: #f2f2f2 !important;
+  }
+  .vote-card .msg {
+    background: #222 !important;
+    color: #f2f2f2 !important;
+    border: 1px solid #444 !important;
   }
 }
 

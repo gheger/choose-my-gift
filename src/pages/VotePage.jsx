@@ -122,8 +122,8 @@ export default function VotePage() {
   }
 
   return (
-    <div style={styles.page}>
-      <div style={styles.card} className="vote-card">
+    <div style={{...styles.page, width: '100vw', minWidth: 0, boxSizing: 'border-box', padding: 0}}>
+      <div style={{...styles.card, width: '100%', minWidth: 0, maxWidth: '100vw', margin: '0 auto', boxSizing: 'border-box'}} className="vote-card">
         <h1 style={{ marginTop: 0 }}>Ton vote 🎁</h1>
         <div style={{ marginBottom: 16 }}>
           <input
