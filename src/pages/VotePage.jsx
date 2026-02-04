@@ -1,4 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
+
+// Add viewport meta for mobile if not already in index.html
+if (typeof document !== 'undefined' && !document.querySelector('meta[name="viewport"]')) {
+  const meta = document.createElement('meta');
+  meta.name = 'viewport';
+  meta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no';
+  document.head.appendChild(meta);
+}
 import { getOptions, submitVote } from "../lib/api.js";
 import { getOrCreateDeviceId } from "../lib/device.js";
 
@@ -9,16 +17,17 @@ export default function VotePage() {
   const [loading, setLoading] = useState(false);
 
   // destination
-  const [destMode, setDestMode] = useState("existing"); // existing | new
+  const [destMode, setDestMode] = useState("existing"); // existing | new | null
   const [destId, setDestId] = useState("");
   const [destNew, setDestNew] = useState("");
 
   // activity
-  const [actMode, setActMode] = useState("existing"); // existing | new
+  const [actMode, setActMode] = useState("existing"); // existing | new | null
   const [actId, setActId] = useState("");
   const [actNew, setActNew] = useState("");
 
-  const [message, setMessage] = useState(null);
+    const [voterName, setVoterName] = useState("");
+    const [message, setMessage] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -48,15 +57,22 @@ export default function VotePage() {
       (actMode === "existing" && !!actId) ||
       (actMode === "new" && actNew.trim().length >= 2);
 
-    // Mode 2: au moins un des deux
+    // At least one of destination or activity must be entered
     return hasDest || hasAct;
   }, [destMode, destId, destNew, actMode, actId, actNew]);
 
   async function onSubmit() {
     setMessage(null);
+    if (!canSubmit) {
+      setMessage({ type: "error", text: "Veuillez entrer au moins une destination ou une activité." });
+      return;
+    }
     setLoading(true);
     try {
       const payload = { deviceId };
+      if (voterName.trim().length > 0) {
+        payload.voterName = voterName.trim();
+      }
 
       // destination (optionnel)
       const hasDest =
@@ -86,7 +102,15 @@ export default function VotePage() {
 
       // res peut contenir des infos "déjà voté"
       if (res?.warnings?.length) {
-        setMessage({ type: "warn", text: res.warnings.join(" ") });
+        // Si au moins un warning contient "déjà voté pour cet appareil", n'afficher le message personnalisé qu'une seule fois
+        const hasAlreadyVoted = res.warnings.some(w => w.includes("déjà voté pour cet appareil"));
+        let customWarning = res.warnings.filter(w => !w.includes("déjà voté pour cet appareil")).join(" ");
+        if (hasAlreadyVoted) {
+          customWarning = (customWarning ? "Tu ne peux voter qu'une fois toutes les 12 heures " : "") + "Tu ne peux voter qu'une fois toutes les 12 heures";
+          customWarning = "Tu ne peux voter qu'une fois toutes les 12 heures" + (customWarning.trim() ? (" " + customWarning.trim()) : "");
+          customWarning = "Tu ne peux voter qu'une fois toutes les 12 heures";
+        }
+        setMessage({ type: "warn", text: customWarning.trim() });
       } else {
         setMessage({ type: "ok", text: "Vote enregistré ✅" });
       }
@@ -99,10 +123,18 @@ export default function VotePage() {
 
   return (
     <div style={styles.page}>
-      <div style={styles.card}>
-        <h1 style={{ marginTop: 0 }}>Voter 🎁</h1>
-        <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 12 }}>
-          Appareil: {deviceId.slice(0, 8)}…
+      <div style={styles.card} className="vote-card">
+        <h1 style={{ marginTop: 0 }}>Ton vote 🎁</h1>
+        <div style={{ marginBottom: 16 }}>
+          <input
+            style={{ ...styles.input, maxWidth: 320, margin: "0 auto", display: "block" }}
+            type="text"
+            placeholder="Votre prénom (optionnel)"
+            value={voterName}
+            onChange={e => setVoterName(e.target.value)}
+            aria-label="Votre prénom"
+            autoComplete="off"
+          />
         </div>
 
         {!options ? (
@@ -116,6 +148,7 @@ export default function VotePage() {
                   style={styles.select}
                   value={destId}
                   onChange={(e) => setDestId(e.target.value)}
+                  aria-label="Choisir une destination"
                 >
                   {options.destinations.map((d) => (
                     <option key={d.id} value={d.id}>
@@ -129,6 +162,8 @@ export default function VotePage() {
                   placeholder="Ex: Brésil"
                   value={destNew}
                   onChange={(e) => setDestNew(e.target.value)}
+                  aria-label="Proposer une destination"
+                  autoComplete="off"
                 />
               )}
             </Block>
@@ -140,6 +175,7 @@ export default function VotePage() {
                   style={styles.select}
                   value={actId}
                   onChange={(e) => setActId(e.target.value)}
+                  aria-label="Choisir une activité"
                 >
                   {options.activities.map((a) => (
                     <option key={a.id} value={a.id}>
@@ -153,6 +189,8 @@ export default function VotePage() {
                   placeholder="Ex: Pêche"
                   value={actNew}
                   onChange={(e) => setActNew(e.target.value)}
+                  aria-label="Proposer une activité"
+                  autoComplete="off"
                 />
               )}
             </Block>
@@ -162,22 +200,33 @@ export default function VotePage() {
                 ...styles.button,
                 opacity: loading || !canSubmit ? 0.6 : 1,
                 cursor: loading || !canSubmit ? "not-allowed" : "pointer",
+                touchAction: "manipulation",
+                minHeight: 48,
+                fontSize: 18,
               }}
               onClick={onSubmit}
               disabled={loading || !canSubmit}
+              aria-label="Valider le vote"
             >
               {loading ? "Envoi…" : "Valider"}
             </button>
 
+
+
             {message && (
               <div style={{ ...styles.msg, ...msgStyle(message.type) }}>
                 {message.text}
+                {message.type === "ok" && (
+                  <div style={{ marginTop: 10 }}>
+                    <a href="/choose-my-gift/#/display" style={{ color: '#222', textDecoration: 'underline', fontWeight: 500 }}>
+                      Voir les résultats
+                    </a>
+                  </div>
+                )}
               </div>
             )}
 
-            <div style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>
-              Mode 2 : tu peux voter destination, activité, ou les deux.
-            </div>
+
           </>
         )}
       </div>
@@ -195,19 +244,22 @@ function Block({ title, children }) {
 }
 
 function Toggle({ mode, setMode }) {
+  // Allow unselecting by clicking again
   return (
     <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
       <button
         type="button"
-        onClick={() => setMode("existing")}
+        onClick={() => setMode(mode === "existing" ? null : "existing")}
         style={{ ...styles.smallBtn, opacity: mode === "existing" ? 1 : 0.5 }}
+        aria-pressed={mode === "existing"}
       >
         Choisir
       </button>
       <button
         type="button"
-        onClick={() => setMode("new")}
+        onClick={() => setMode(mode === "new" ? null : "new")}
         style={{ ...styles.smallBtn, opacity: mode === "new" ? 1 : 0.5 }}
+        aria-pressed={mode === "new"}
       >
         Proposer
       </button>
@@ -224,12 +276,11 @@ function msgStyle(type) {
 const styles = {
   page: {
     minHeight: "100vh",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
+    display: "block",
     padding: 8,
     background: "#fff",
     color: "#222",
+    boxSizing: "border-box",
   },
   card: {
     width: "100%",
@@ -241,55 +292,65 @@ const styles = {
     boxShadow: "0 6px 24px rgba(0,0,0,0.10)",
     margin: "0 8px",
     color: "#222",
+    boxSizing: "border-box",
   },
   select: {
     width: "100%",
-    padding: 12,
+    padding: 14,
     borderRadius: 10,
     border: "1px solid #ddd",
-    fontSize: 16,
+    fontSize: 18,
     background: "#f9f9f9",
     color: "#222",
+    minHeight: 44,
+    boxSizing: "border-box",
   },
   input: {
     width: "100%",
-    padding: 12,
+    padding: 14,
     borderRadius: 10,
     border: "1px solid #ddd",
-    fontSize: 16,
+    fontSize: 18,
     background: "#f9f9f9",
     color: "#222",
+    minHeight: 44,
+    boxSizing: "border-box",
   },
   button: {
     marginTop: 16,
     width: "100%",
-    padding: 14,
+    padding: 16,
     borderRadius: 10,
     border: "none",
     background: "linear-gradient(90deg,#111 60%,#444 100%)",
     color: "white",
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: 700,
     boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
     transition: "background 0.2s",
+    minHeight: 48,
+    touchAction: "manipulation",
   },
   smallBtn: {
     flex: 1,
-    padding: 10,
+    padding: 12,
     borderRadius: 10,
     border: "1px solid #ddd",
     background: "#f9f9f9",
     color: "#222",
     fontWeight: 500,
-    fontSize: 15,
+    fontSize: 16,
     transition: "background 0.2s",
+    minHeight: 44,
+    boxSizing: "border-box",
   },
   msg: {
     marginTop: 12,
-    padding: 10,
+    padding: 12,
     borderRadius: 10,
-    fontSize: 15,
+    fontSize: 16,
     color: "#222",
     fontWeight: 500,
+    boxSizing: "border-box",
   },
 };
