@@ -18,12 +18,12 @@ export default function VotePage() {
 
   // destination
   const [destMode, setDestMode] = useState("existing"); // existing | new | null
-  const [destId, setDestId] = useState("");
+  const [destId, setDestId] = useState(""); // No pre-selection
   const [destNew, setDestNew] = useState("");
 
   // activity
   const [actMode, setActMode] = useState("existing"); // existing | new | null
-  const [actId, setActId] = useState("");
+  const [actId, setActId] = useState(""); // No pre-selection
   const [actNew, setActNew] = useState("");
 
     const [voterName, setVoterName] = useState("");
@@ -36,9 +36,9 @@ export default function VotePage() {
         const o = await getOptions();
         if (!alive) return;
         setOptions(o);
-        // pré-sélection si possible
-        if (o.destinations?.[0]?.id) setDestId(o.destinations[0].id);
-        if (o.activities?.[0]?.id) setActId(o.activities[0].id);
+        // No pre-selection: user must choose
+        setDestId("");
+        setActId("");
       } catch (e) {
         setMessage({ type: "error", text: "Impossible de charger les options." });
       }
@@ -50,14 +50,14 @@ export default function VotePage() {
 
   const canSubmit = useMemo(() => {
     const hasDest =
-      (destMode === "existing" && !!destId) ||
+      (destMode === "existing" && destId) ||
       (destMode === "new" && destNew.trim().length >= 2);
 
     const hasAct =
-      (actMode === "existing" && !!actId) ||
+      (actMode === "existing" && actId) ||
       (actMode === "new" && actNew.trim().length >= 2);
 
-    // At least one of destination or activity must be entered
+    // Require explicit choice: must select from list or enter new
     return hasDest || hasAct;
   }, [destMode, destId, destNew, actMode, actId, actNew]);
 
@@ -149,7 +149,9 @@ export default function VotePage() {
                   value={destId}
                   onChange={(e) => setDestId(e.target.value)}
                   aria-label="Choisir une destination"
+                  required
                 >
+                  <option value="" disabled>-- Choisir une destination --</option>
                   {options.destinations.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.name}
@@ -159,7 +161,7 @@ export default function VotePage() {
               ) : (
                 <input
                   style={styles.input}
-                  placeholder="Ex: Brésil"
+                  placeholder="Ex: Bitcoinistan"
                   value={destNew}
                   onChange={(e) => setDestNew(e.target.value)}
                   aria-label="Proposer une destination"
@@ -176,7 +178,9 @@ export default function VotePage() {
                   value={actId}
                   onChange={(e) => setActId(e.target.value)}
                   aria-label="Choisir une activité"
+                  required
                 >
+                  <option value="" disabled>-- Choisir une activité --</option>
                   {options.activities.map((a) => (
                     <option key={a.id} value={a.id}>
                       {a.name}
@@ -186,7 +190,7 @@ export default function VotePage() {
               ) : (
                 <input
                   style={styles.input}
-                  placeholder="Ex: Pêche"
+                  placeholder="Ex: Casser 3 pattes à un canard (et en réparer 2)"
                   value={actNew}
                   onChange={(e) => setActNew(e.target.value)}
                   aria-label="Proposer une activité"
