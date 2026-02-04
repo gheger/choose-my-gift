@@ -53,13 +53,17 @@ export default {
 
         // Mode 2: on traite destination ET/OU activity si présents
         // Anti-doublon: 1 vote max par deviceId + category
+
+        // Pass voterName to createVote if present
+        const voterName = typeof body.voterName === 'string' ? body.voterName : undefined;
+
         if (body.destination) {
           const already = await hasVoted(env, "destination", deviceId);
           if (already) {
             warnings.push("Destination: déjà voté pour cet appareil.");
           } else {
             const destOptionId = await ensureOption(env, "destination", body.destination);
-            await createVote(env, "destination", destOptionId, deviceId);
+            await createVote(env, "destination", destOptionId, deviceId, voterName);
           }
         }
 
@@ -69,7 +73,7 @@ export default {
             warnings.push("Activité: déjà voté pour cet appareil.");
           } else {
             const actOptionId = await ensureOption(env, "activity", body.activity);
-            await createVote(env, "activity", actOptionId, deviceId);
+            await createVote(env, "activity", actOptionId, deviceId, voterName);
           }
         }
 
@@ -182,12 +186,14 @@ async function findOptionByName(env, table, name) {
   return data.records?.[0]?.id || null;
 }
 
-async function createVote(env, category, optionId, deviceId) {
+async function createVote(env, category, optionId, deviceId, voterName) {
+  const fields = { category, optionId, deviceId };
+  if (voterName) fields.voterName = voterName;
   await airtableFetch(env, airtableBase(env, "Votes"), {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      records: [{ fields: { category, optionId, deviceId } }],
+      records: [{ fields }],
     }),
   });
 }
