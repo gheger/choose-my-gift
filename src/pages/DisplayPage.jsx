@@ -101,16 +101,18 @@ export default function DisplayPage() {
       <div className="display-fullscreen" style={{
         display: 'flex',
         flexDirection: 'column',
-        height: '100vh',
+        minHeight: '100vh',
         width: '100vw',
         background: '#fff',
         color: '#222',
-        overflow: 'hidden',
+        overflowX: 'hidden',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
       }}>
         {/* Slider (50% width) on top */}
-        <div style={{ width: '100%', padding: '32px 0 0 0', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: 340 }}>
+        <div style={{ width: '100%', padding: '32px 0 0 0', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: 340, boxSizing: 'border-box' }}>
           <h1 style={{ margin: 0, fontSize: 36, letterSpacing: 1 }}>Où va aller Garry ? 🎁</h1>
-          <div style={{ width: '50vw', minWidth: 320, minHeight: 320, marginTop: 24, maxWidth: 700, padding: 0, marginLeft: 'auto', marginRight: 'auto' }}>
+          <div style={{ width: '100%', maxWidth: 700, minWidth: 0, minHeight: 320, marginTop: 24, padding: 0, marginLeft: 'auto', marginRight: 'auto', boxSizing: 'border-box' }}>
             {currentDest ? (
               <div style={{
                 border: '1px solid #eee',
