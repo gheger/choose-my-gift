@@ -1,3 +1,6 @@
+// Set to true to allow unlimited voting (disable revote protection)
+const ALLOW_REVOTE = true; // Set to true to deactivate the revote mechanism
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -58,7 +61,10 @@ export default {
         const voterName = typeof body.voterName === 'string' ? body.voterName : undefined;
 
         if (body.destination) {
-          const already = await hasVoted(env, "destination", deviceId);
+          let already = false;
+          if (!ALLOW_REVOTE) {
+            already = await hasVoted(env, "destination", deviceId);
+          }
           if (already) {
             warnings.push("Destination: déjà voté pour cet appareil.");
           } else {
@@ -68,7 +74,10 @@ export default {
         }
 
         if (body.activity) {
-          const already = await hasVoted(env, "activity", deviceId);
+          let already = false;
+          if (!ALLOW_REVOTE) {
+            already = await hasVoted(env, "activity", deviceId);
+          }
           if (already) {
             warnings.push("Activité: déjà voté pour cet appareil.");
           } else {
