@@ -129,10 +129,10 @@ export default function VotePage() {
           <input
             style={{ ...styles.input, maxWidth: 320, margin: "0 auto", display: "block" }}
             type="text"
-            placeholder="Votre prénom (optionnel)"
+            placeholder="Ton prénom (optionnel)"
             value={voterName}
             onChange={e => setVoterName(e.target.value)}
-            aria-label="Votre prénom"
+            aria-label="Ton prénom"
             autoComplete="off"
           />
         </div>
@@ -216,7 +216,8 @@ export default function VotePage() {
             {message && (
               <div style={{ ...styles.msg, ...msgStyle(message.type) }}>
                 {message.text}
-                {message.type === "ok" && (
+                {/* Show results link for both ok and warn ("Tu ne peux voter ...") messages */}
+                {(message.type === "ok" || (message.type === "warn" && message.text.includes("Tu ne peux voter"))) && (
                   <div style={{ marginTop: 10 }}>
                     <a href="/choose-my-gift/#/display" style={{ color: '#222', textDecoration: 'underline', fontWeight: 500 }}>
                       Voir les résultats
