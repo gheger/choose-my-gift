@@ -10,6 +10,7 @@ export default function DisplayPage() {
     const progressIntervalRef = useRef();
   const [data, setData] = useState(null);
   const [sliderIndex, setSliderIndex] = useState(0);
+  // images: { [destinationName]: { url, alt, photographer, source } }
   const [images, setImages] = useState({});
   const sliderIntervalRef = useRef();
   const prevTopDestNamesRef = useRef([]);
@@ -85,9 +86,9 @@ export default function DisplayPage() {
     if (!currentDest || images[currentDest.name]) return;
     let cancelled = false;
     async function fetchImage() {
-      const img = await fetchDestinationImage(currentDest.name);
+      const imgObj = await fetchDestinationImage(currentDest.name);
       if (!cancelled) {
-        setImages((prev) => ({ ...prev, [currentDest.name]: img }));
+        setImages((prev) => ({ ...prev, [currentDest.name]: imgObj }));
       }
     }
     fetchImage();
@@ -126,8 +127,30 @@ export default function DisplayPage() {
                 maxWidth: '100vw',
               }}>
                 <div style={{ width: '100%', height: 220, background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                  {images[currentDest.name] ? (
-                    <img src={images[currentDest.name]} alt={currentDest.name} style={{ width: '100%', height: 220, objectFit: 'cover', maxWidth: '100vw' }} />
+                  {/* Photo credit overlay, bottom left, above image */}
+                  {images[currentDest.name]?.photographer && (
+                    <div style={{
+                      position: 'absolute',
+                      left: 2,
+                      bottom: 2,
+                      zIndex: 2,
+                      color: '#fff',
+                      background: 'rgba(0,0,0,0.32)',
+                      padding: '2px 8px 2px 2px',
+                      borderRadius: 8,
+                      fontSize: 14,
+                      fontWeight: 400,
+                      textShadow: '0 1px 4px rgba(0,0,0,0.7)',
+                      maxWidth: '80%',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>
+                      Crédit : {images[currentDest.name].photographer} / Unsplash
+                    </div>
+                  )}
+                  {images[currentDest.name]?.url ? (
+                    <img src={images[currentDest.name].url} alt={images[currentDest.name].alt || currentDest.name} style={{ width: '100%', height: 220, objectFit: 'cover', maxWidth: '100vw' }} />
                   ) : (
                     <span>Chargement de l'image…</span>
                   )}
@@ -140,6 +163,7 @@ export default function DisplayPage() {
                   <h2 style={{ margin: '0 0 10px 0', fontSize: 30 }}>
                     {sliderIndex === 0 ? '🥇' : sliderIndex === 1 ? '🥈' : sliderIndex === 2 ? '🥉' : ''} #{sliderIndex + 1} {currentDest.name}
                   </h2>
+                  {/* ...existing code... */}
                   <div style={{ fontSize: 24, fontWeight: 600, color: '#333' }}>{currentDest.percent}%</div>
                   <div style={{ fontSize: 16, color: '#888' }}>{currentDest.count} votes</div>
                 </div>
