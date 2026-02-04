@@ -26,7 +26,7 @@ export default function DisplayPage() {
       } catch (e) {}
     };
     tick();
-    const id = setInterval(tick, 10000);
+    const id = setInterval(tick, 600000);
     return () => {
       alive = false;
       clearInterval(id);
@@ -164,11 +164,16 @@ export default function DisplayPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', width: '100%', padding: '0 40px 18px 40px', background: '#fff' }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <div style={{ background: '#fafafa', borderRadius: 12, border: '1px solid #eee', padding: 18, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-              <QRCodeCanvas value={voteUrl} size={140} />
+              <a href={voteUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block' }}>
+                <QRCodeCanvas value={voteUrl} size={140} style={{ cursor: 'pointer' }} />
+              </a>
             </div>
-            <div style={{ fontSize: 20, opacity: 0.8, marginLeft: 18, wordBreak: 'break-all', maxWidth: 260 }}>{voteUrl}</div>
+            {/* <div style={{ fontSize: 20, opacity: 0.8, marginLeft: 18, wordBreak: 'break-all', maxWidth: 260 }}>{voteUrl}</div> */}
             <div style={{ fontWeight: 600, fontSize: 24, color: '#222', textAlign: 'left', marginLeft: 32 }}>
-              Votez maintenant pour influencer le choix !
+              Vote maintenant et influencer le choix !
+              <div style={{ fontSize: 14, color: '#666', marginTop: 6, fontWeight: 400 }}>
+                Clique ou scanne le code QR
+              </div>
             </div>
           </div>
         </div>
