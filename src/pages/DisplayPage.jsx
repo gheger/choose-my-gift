@@ -170,7 +170,7 @@ export default function DisplayPage() {
             </div>
             {/* <div style={{ fontSize: 20, opacity: 0.8, marginLeft: 18, wordBreak: 'break-all', maxWidth: 260 }}>{voteUrl}</div> */}
             <div style={{ fontWeight: 600, fontSize: 24, color: '#222', textAlign: 'left', marginLeft: 32 }}>
-              Vote maintenant et influencer le choix !
+              Vote maintenant et influence le choix
               <div style={{ fontSize: 14, color: '#666', marginTop: 6, fontWeight: 400 }}>
                 Clique ou scanne le code QR
               </div>
