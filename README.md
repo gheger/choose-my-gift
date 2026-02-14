@@ -24,7 +24,13 @@ A React + Vite web app for voting on destinations and activities, with live resu
    npm install
    ```
 
-2. Start the frontend locally:
+2. Create local env file:
+
+   ```
+   cp .env.example .env
+   ```
+
+3. Start the frontend locally:
 
    ```
    npm run dev
@@ -32,7 +38,7 @@ A React + Vite web app for voting on destinations and activities, with live resu
 
    The app will be available at [http://localhost:5173](http://localhost:5173) (or the port shown in your terminal).
 
-3. (Optional) Lint your code:
+4. (Optional) Lint your code:
 
    ```
    npm run lint
@@ -57,13 +63,26 @@ The backend API is in the `worker/` directory and uses Cloudflare Workers with W
    npm install
    ```
 
-3. Start the worker locally:
+3. Create local worker env file:
+
+   ```
+   cp .dev.vars.example .dev.vars
+   ```
+
+4. Start the worker locally:
 
    ```
    wrangler dev
    ```
 
    The API will be available at the local worker URL (shown in terminal).
+
+## Secret Safety
+
+- `.env*` and `worker/.dev.vars*` are gitignored by default.
+- Git hooks block commits and pushes that include likely secrets.
+- Hooks are auto-configured via `npm install` (`core.hooksPath=.githooks`).
+- If a secret ever lands in git history, rotate it immediately.
 
 ## Deployment
 
