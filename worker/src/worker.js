@@ -1,11 +1,23 @@
 // Set to true to allow unlimited voting (disable revote protection)
 const ALLOW_REVOTE = true; // Set to true to deactivate the revote mechanism
 
+const TABLE_BY_CATEGORY = {
+  destination: "Destinations",
+  activity: "Activities",
+};
+
+const LINK_FIELD_BY_CATEGORY = {
+  destination: "destination",
+  activity: "activity",
+};
+
+const ALREADY_VOTED_WARNING = "Un vote a déjà été enregistré avec cet appareil.";
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    // CORS simple (GitHub Pages)
+    // Basic CORS handling (GitHub Pages)
     if (request.method === "OPTIONS") {
       return cors(new Response(null, { status: 204 }), env);
     }
@@ -23,12 +35,12 @@ export default {
         const votes = await listVotes(env);
 
         const counts = { destination: {}, activity: {} };
-        for (const v of votes) {
-          const cat = v.fields.category;
-          const opt = v.fields.optionId;
-          if (!cat || !opt) continue;
-          if (!counts[cat]) continue;
-          counts[cat][opt] = (counts[cat][opt] || 0) + 1;
+        for (const vote of votes) {
+          for (const category of Object.keys(LINK_FIELD_BY_CATEGORY)) {
+            const optionId = getLinkedRecordId(vote.fields, category);
+            if (!optionId) continue;
+            counts[category][optionId] = (counts[category][optionId] || 0) + 1;
+          }
         }
 
         const [dest, act] = await Promise.all([
@@ -53,41 +65,44 @@ export default {
 
         const deviceId = String(body.deviceId);
         const warnings = [];
-
-        // Mode 2: on traite destination ET/OU activity si présents
-        // Anti-doublon: 1 vote max par deviceId + category
-
-        // Pass voterName to createVote if present
-        const voterName = typeof body.voterName === 'string' ? body.voterName : undefined;
+        const voterName = typeof body.voterName === "string" ? body.voterName : undefined;
+        const voteRecord = await getVoteByDeviceId(env, deviceId);
+        const updates = {};
 
         if (body.destination) {
-          let already = false;
-          if (!ALLOW_REVOTE) {
-            already = await hasVoted(env, "destination", deviceId);
-          }
-          if (already) {
-            warnings.push("Destination: déjà voté pour cet appareil.");
+          const already = Boolean(getLinkedRecordId(voteRecord?.fields, "destination"));
+          if (already && !ALLOW_REVOTE) {
+            if (!warnings.includes(ALREADY_VOTED_WARNING)) {
+              warnings.push(ALREADY_VOTED_WARNING);
+            }
           } else {
             const destOptionId = await ensureOption(env, "destination", body.destination);
-            await createVote(env, "destination", destOptionId, deviceId, voterName);
+            updates[LINK_FIELD_BY_CATEGORY.destination] = [destOptionId];
           }
         }
 
         if (body.activity) {
-          let already = false;
-          if (!ALLOW_REVOTE) {
-            already = await hasVoted(env, "activity", deviceId);
-          }
-          if (already) {
-            warnings.push("Activité: déjà voté pour cet appareil.");
+          const already = Boolean(getLinkedRecordId(voteRecord?.fields, "activity"));
+          if (already && !ALLOW_REVOTE) {
+            if (!warnings.includes(ALREADY_VOTED_WARNING)) {
+              warnings.push(ALREADY_VOTED_WARNING);
+            }
           } else {
             const actOptionId = await ensureOption(env, "activity", body.activity);
-            await createVote(env, "activity", actOptionId, deviceId, voterName);
+            updates[LINK_FIELD_BY_CATEGORY.activity] = [actOptionId];
           }
         }
 
         if (!body.destination && !body.activity) {
           return cors(json({ error: "Aucun vote fourni" }, 400), env);
+        }
+
+        if (voterName) {
+          updates.voterName = voterName;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await upsertVoteByDeviceId(env, voteRecord, deviceId, updates);
         }
 
         return cors(json({ ok: true, warnings }), env);
@@ -146,32 +161,34 @@ async function listVotes(env) {
   return data.records.map((r) => ({ id: r.id, fields: r.fields }));
 }
 
-async function hasVoted(env, category, deviceId) {
-  // filterByFormula: AND({category}="destination",{deviceId}="xxx")
-  const formula = `AND({category}="${escapeFormula(category)}",{deviceId}="${escapeFormula(
-    deviceId
-  )}")`;
+async function getVoteByDeviceId(env, deviceId) {
+  const formula = `{deviceId}="${escapeFormula(deviceId)}"`;
   const url = new URL(airtableBase(env, "Votes"));
   url.searchParams.set("maxRecords", "1");
   url.searchParams.set("filterByFormula", formula);
 
   const data = await airtableFetch(env, url.toString());
-  return (data.records?.length || 0) > 0;
+  return data.records?.[0] || null;
 }
 
 async function ensureOption(env, category, option) {
-  const table = category === "destination" ? "Destinations" : "Activities";
+  const table = TABLE_BY_CATEGORY[category];
+  if (!table) throw new Error(`${category}: categorie invalide`);
 
   if (option.type === "existing") {
-    if (!option.id) throw new Error(`${category}: id manquant`);
-    return option.id;
+    const id = String(option.id || "").trim();
+    if (!id) throw new Error(`${category}: id manquant`);
+
+    // Enforce referential integrity against the category-specific table.
+    await getOptionById(env, table, id);
+    return id;
   }
 
   if (option.type === "new") {
     const name = String(option.name || "").trim();
     if (name.length < 2) throw new Error(`${category}: nom trop court`);
 
-    // Optionnel: déduplication (si nom existe déjà, on réutilise)
+    // Optional dedup: if same name exists, reuse it.
     const existingId = await findOptionByName(env, table, name);
     if (existingId) return existingId;
 
@@ -195,36 +212,58 @@ async function findOptionByName(env, table, name) {
   return data.records?.[0]?.id || null;
 }
 
-async function createVote(env, category, optionId, deviceId, voterName) {
-  const fields = { category, optionId, deviceId };
-  if (voterName) fields.voterName = voterName;
+async function getOptionById(env, table, id) {
+  const recordUrl = `${airtableBase(env, table)}/${encodeURIComponent(id)}`;
+  return airtableFetch(env, recordUrl);
+}
+
+async function upsertVoteByDeviceId(env, voteRecord, deviceId, fields) {
+  if (voteRecord?.id) {
+    const recordUrl = `${airtableBase(env, "Votes")}/${encodeURIComponent(voteRecord.id)}`;
+    await airtableFetch(env, recordUrl, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ fields }),
+    });
+    return;
+  }
+
   await airtableFetch(env, airtableBase(env, "Votes"), {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      records: [{ fields }],
-    }),
+    body: JSON.stringify({ records: [{ fields: { deviceId, ...fields } }] }),
   });
 }
 
+function getLinkedRecordId(fields, category) {
+  const linkField = LINK_FIELD_BY_CATEGORY[category];
+  const links = fields?.[linkField];
+  if (!Array.isArray(links) || links.length === 0) return null;
+  return typeof links[0] === "string" && links[0] ? links[0] : null;
+}
+
 function escapeFormula(s) {
-  // très simple pour éviter de casser les guillemets dans filterByFormula
   return String(s).replaceAll('"', '\\"');
 }
 
 function toRankedPercent(options, countsById) {
-  const total = Object.values(countsById).reduce((a, b) => a + b, 0) || 0;
+  const optionIds = new Set(options.map((o) => o.id));
+  const orphanVotes = Object.entries(countsById).reduce((acc, [id, count]) => {
+    return optionIds.has(id) ? acc : acc + count;
+  }, 0);
 
   const rows = options
     .map((o) => {
       const c = countsById[o.id] || 0;
-      const pct = total ? Math.round((c / total) * 100) : 0;
-      return { id: o.id, name: o.name, count: c, percent: pct };
+      return { id: o.id, name: o.name, count: c };
     })
     .sort((a, b) => b.count - a.count);
 
-  // Ajustement optionnel pour que la somme fasse exactement 100 (à cause des arrondis)
-  // Ici on laisse simple : c’est ok pour une démo.
+  const total = rows.reduce((acc, r) => acc + r.count, 0);
+  const rowsWithPercent = rows.map((r) => {
+    const pct = total ? Math.round((r.count / total) * 100) : 0;
+    return { ...r, percent: pct };
+  });
 
-  return { total, rows };
+  return { total, orphanVotes, rows: rowsWithPercent };
 }
