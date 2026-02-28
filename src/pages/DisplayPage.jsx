@@ -4,10 +4,16 @@ import { getResults } from "../lib/api.js";
 import { fetchDestinationImage } from "../lib/image.js";
 
 export default function DisplayPage() {
+  const parsedRefreshSeconds = Number(import.meta.env.VITE_RESULTS_REFRESH_SECONDS);
+  const resultsRefreshMs =
+    Number.isFinite(parsedRefreshSeconds) && parsedRefreshSeconds > 0
+      ? parsedRefreshSeconds * 1000
+      : 240000;
+
     // Progress bar state for slider
-    const [sliderProgress, setSliderProgress] = useState(1); // 1 = full, 0 = empty
-    const [sliderTimeLeft, setSliderTimeLeft] = useState(10);
-    const progressIntervalRef = useRef();
+  const [sliderProgress, setSliderProgress] = useState(1); // 1 = full, 0 = empty
+  const [sliderTimeLeft, setSliderTimeLeft] = useState(10);
+  const progressIntervalRef = useRef();
   const [data, setData] = useState(null);
   const [sliderIndex, setSliderIndex] = useState(0);
   // images: { [destinationName]: { url, alt, photographer, source } }
@@ -17,7 +23,7 @@ export default function DisplayPage() {
 
   const voteUrl = `${window.location.origin}${import.meta.env.BASE_URL}#/vote`;
 
-  // Fetch results every 10s
+  // Fetch results on configured interval (seconds via .env)
   useEffect(() => {
     let alive = true;
     const tick = async () => {
@@ -27,12 +33,12 @@ export default function DisplayPage() {
       } catch (e) {}
     };
     tick();
-    const id = setInterval(tick, 600000);
+    const id = setInterval(tick, resultsRefreshMs);
     return () => {
       alive = false;
       clearInterval(id);
     };
-  }, []);
+  }, [resultsRefreshMs]);
 
   // Slider: change every 10s, independent of backend polling
   const topDestRows = data?.destination?.rows?.slice(0, 5) || [];
